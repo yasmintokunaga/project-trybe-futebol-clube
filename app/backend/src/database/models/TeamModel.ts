@@ -1,46 +1,30 @@
-import {
-  DataTypes,
-  Model,
-  InferAttributes,
-  InferCreationAttributes,
-  CreationOptional,
-} from 'sequelize';
-import db from '.';
-// import OtherModel from './OtherModel';
+import SequelizeTeam from './SequelizeTeam';
+import { NewEntity } from '../../Interfaces';
+import ITeam from '../../Interfaces/ITeam';
+import { ITeamModel } from '../../Interfaces/ITeamModel';
 
-class Team extends Model<InferAttributes<Team>,
-InferCreationAttributes<Team>> {
-  declare id: CreationOptional<number>;
+export default class TeamModel implements ITeamModel {
+  private model = SequelizeTeam;
 
-  declare teamName: string;
+  async create(data: NewEntity<ITeam>): Promise<ITeam> {
+    const dbData = await this.model.create(data);
+
+    const { id, teamName }: ITeam = dbData;
+    return { id, teamName };
+  }
+
+  async findAll(): Promise<ITeam[]> {
+    const dbData = await this.model.findAll();
+    return dbData.map(({ id, teamName }) => (
+      { id, teamName }
+    ));
+  }
+
+  async findById(id: ITeam['id']): Promise<ITeam | null> {
+    const dbData = await this.model.findByPk(id);
+    if (dbData == null) return null;
+
+    const { teamName }: ITeam = dbData;
+    return { id, teamName };
+  }
 }
-
-Team.init({
-  id: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    primaryKey: true,
-    autoIncrement: true,
-  },
-  teamName: {
-    type: DataTypes.STRING(150),
-    allowNull: false,
-  },
-}, {
-  sequelize: db,
-  modelName: 'teams',
-  timestamps: false,
-});
-
-/**
-  * `Workaround` para aplicar as associations em TS:
-  * Associations 1:N devem ficar em uma das instâncias de modelo
-  * */
-
-// OtherModel.belongsTo(Example, { foreignKey: 'campoA', as: 'campoEstrangeiroA' });
-// OtherModel.belongsTo(Example, { foreignKey: 'campoB', as: 'campoEstrangeiroB' });
-
-// Example.hasMany(OtherModel, { foreignKey: 'campoC', as: 'campoEstrangeiroC' });
-// Example.hasMany(OtherModel, { foreignKey: 'campoD', as: 'campoEstrangeiroD' });
-
-export default Team;
