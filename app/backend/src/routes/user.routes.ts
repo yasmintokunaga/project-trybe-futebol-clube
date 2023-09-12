@@ -9,6 +9,7 @@ const router = Router();
 router.post(
   '/',
   ValidationFieldsLogin.validateFields,
+  ValidationFieldsLogin.validateEmailPassword,
   (req: Request, res: Response) => userController.loginUser(req, res),
 );
 
