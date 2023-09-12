@@ -27,4 +27,12 @@ export default class UserModel implements IUserModel {
     const { username, role, email, password }: IUser = dbData;
     return { id, username, role, email, password };
   }
+
+  async findByEmail(email: IUser['email']): Promise<IUser | null> {
+    const dbData = await this.model.findOne({ where: { email } });
+    if (dbData == null) return null;
+
+    const { id, username, role, password }: IUser = dbData;
+    return { id, username, role, email, password };
+  }
 }
