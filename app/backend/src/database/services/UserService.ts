@@ -13,4 +13,10 @@ export default class UserService {
     if (!user) return { status: 'INVALID_DATA', data: { message: `User ${email} not found` } };
     return { status: 'SUCCESSFUL', data: user };
   }
+
+  public async getUserById(id: number): Promise<ServiceResponse<IUser>> {
+    const user = await this.userModel.findById(id);
+    if (!user) return { status: 'INVALID_DATA', data: { message: `User ${id} not found` } };
+    return { status: 'SUCCESSFUL', data: user };
+  }
 }

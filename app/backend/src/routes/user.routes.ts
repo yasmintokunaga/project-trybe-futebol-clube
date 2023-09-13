@@ -13,4 +13,9 @@ router.post(
   (req: Request, res: Response) => userController.loginUser(req, res),
 );
 
+router.get(
+  '/role',
+  (req: Request, res: Response) => userController.getRoleByToken(req, res),
+);
+
 export default router;
