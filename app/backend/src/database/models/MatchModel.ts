@@ -31,4 +31,12 @@ export default class MatchModel implements IMatchModel {
     }
     await match.update({ inProgress: false });
   }
+
+  async updateMatchFields(id: IMatch['id'], updateFields: Partial<IMatch>): Promise<void> {
+    const match = await this.model.findByPk(id);
+    if (!match) {
+      throw new Error('Match not found');
+    }
+    await match.update(updateFields);
+  }
 }

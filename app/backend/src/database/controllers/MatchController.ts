@@ -31,4 +31,18 @@ export default class MatchController {
     await this.matchService.finishMatch(parseInt(id, 10));
     return res.status(200).json({ message: 'Finished' });
   }
+
+  public async updateMatchFields(req: Request, res: Response) {
+    const authorizationHeader = req.header('authorization');
+    const responseValidation = await this.validations.validateToken(authorizationHeader);
+    if (responseValidation.status !== 'SUCCESSFUL') {
+      return res.status(mapStatusHTTP(responseValidation.status)).json(responseValidation.data);
+    }
+
+    const updateFields = req.body;
+    const { id } = req.params;
+
+    await this.matchService.updateMatchFields(parseInt(id, 10), updateFields);
+    return res.status(200).json({ message: 'Updated' });
+  }
 }

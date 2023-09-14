@@ -29,4 +29,8 @@ export default class MatchService {
   public async finishMatch(id: IMatch['id']): Promise<void> {
     await this.matchModel.finishMatch(id);
   }
+
+  public async updateMatchFields(id: IMatch['id'], updateFields: Partial<IMatch>): Promise<void> {
+    await this.matchModel.updateMatchFields(id, updateFields);
+  }
 }
