@@ -3,16 +3,15 @@ import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
 import mapStatusHTTP from '../../utils/mapStatusHTTP';
 import UserService from '../services/UserService';
+import Validations from '../middlewares/Validations';
+import IUser from '../../Interfaces/IUser';
 
 const secret = process.env.JWT_SECRET || 'jwt_secret';
-
-type JwtPayload = {
-  data: { id: number };
-};
 
 export default class UserController {
   constructor(
     private userService = new UserService(),
+    private validations = new Validations(),
   ) { }
 
   public async loginUser(req: Request, res: Response) {
@@ -39,26 +38,13 @@ export default class UserController {
 
   public async getRoleByToken(req: Request, res: Response) {
     const authorizationHeader = req.header('authorization');
-    if (!authorizationHeader) {
-      return res.status(401).json({ message: 'Token not found' });
+    const responseValidation = await this.validations.validateToken(authorizationHeader);
+    console.log('RESPONSEVALIDATION:', responseValidation);
+    if (responseValidation.status !== 'SUCCESSFUL') {
+      return res.status(mapStatusHTTP(responseValidation.status)).json(responseValidation.data);
     }
 
-    const token = authorizationHeader.includes('Bearer')
-      ? authorizationHeader.split(' ')[1] : authorizationHeader;
-    if (token.split('.').length !== 3) {
-      return res.status(401).json({ message: 'Token must be a valid token' });
-    }
-
-    const { data } = jwt.verify(token, secret) as JwtPayload;
-
-    const serviceResponse = await this.userService.getUserById(data.id);
-
-    if (serviceResponse.status !== 'SUCCESSFUL') {
-      return res.status(mapStatusHTTP(serviceResponse.status))
-        .json({ message: 'Token must be a valid token' });
-    }
-
-    const { role } = serviceResponse.data;
+    const { role } = responseValidation.data as IUser;
     res.status(200).json({ role });
   }
 }
