@@ -10,6 +10,7 @@ export default class UserService {
 
   public async getUserByEmail(email: string): Promise<ServiceResponse<IUser>> {
     const user = await this.userModel.findByEmail(email);
+
     if (!user) return { status: 'INVALID_DATA', data: { message: `User ${email} not found` } };
     return { status: 'SUCCESSFUL', data: user };
   }
