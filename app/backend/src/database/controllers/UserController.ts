@@ -39,7 +39,6 @@ export default class UserController {
   public async getRoleByToken(req: Request, res: Response) {
     const authorizationHeader = req.header('authorization');
     const responseValidation = await this.validations.validateToken(authorizationHeader);
-    console.log('RESPONSEVALIDATION:', responseValidation);
     if (responseValidation.status !== 'SUCCESSFUL') {
       return res.status(mapStatusHTTP(responseValidation.status)).json(responseValidation.data);
     }

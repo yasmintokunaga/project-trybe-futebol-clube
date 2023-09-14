@@ -1,10 +1,12 @@
 import { Request, Response } from 'express';
 import mapStatusHTTP from '../../utils/mapStatusHTTP';
 import MatchService from '../services/MatchService';
+import Validations from '../middlewares/Validations';
 
 export default class MatchController {
   constructor(
     private matchService = new MatchService(),
+    private validations = new Validations(),
   ) { }
 
   public async getAllMatches(req: Request, res: Response) {
@@ -16,5 +18,17 @@ export default class MatchController {
     }
     const serviceResponse = await this.matchService.getAllMatches();
     res.status(mapStatusHTTP(serviceResponse.status)).json(serviceResponse.data);
+  }
+
+  public async finishMatch(req: Request, res: Response) {
+    const authorizationHeader = req.header('authorization');
+    const responseValidation = await this.validations.validateToken(authorizationHeader);
+    if (responseValidation.status !== 'SUCCESSFUL') {
+      return res.status(mapStatusHTTP(responseValidation.status)).json(responseValidation.data);
+    }
+
+    const { id } = req.params;
+    await this.matchService.finishMatch(parseInt(id, 10));
+    return res.status(200).json({ message: 'Finished' });
   }
 }
