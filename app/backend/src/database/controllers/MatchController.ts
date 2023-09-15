@@ -2,11 +2,13 @@ import { Request, Response } from 'express';
 import mapStatusHTTP from '../../utils/mapStatusHTTP';
 import MatchService from '../services/MatchService';
 import Validations from '../middlewares/Validations';
+import TeamService from '../services/TeamService';
 
 export default class MatchController {
   constructor(
     private matchService = new MatchService(),
     private validations = new Validations(),
+    private teamService = new TeamService(),
   ) { }
 
   public async getAllMatches(req: Request, res: Response) {
@@ -52,7 +54,19 @@ export default class MatchController {
     if (responseValidation.status !== 'SUCCESSFUL') {
       return res.status(mapStatusHTTP(responseValidation.status)).json(responseValidation.data);
     }
+    const { homeTeamId, awayTeamId } = req.body;
+    if (homeTeamId === awayTeamId) {
+      return res.status(422)
+        .json({ message: 'It is not possible to create a match with two equal teams' });
+    }
 
+    const isHomeTeamExist = await this.teamService.getTeamById(homeTeamId);
+    const isAwayTeamExist = await this.teamService.getTeamById(awayTeamId);
+
+    if (isHomeTeamExist.status === 'NOT_FOUND' || isAwayTeamExist.status === 'NOT_FOUND') {
+      return res.status(mapStatusHTTP('NOT_FOUND'))
+        .json({ message: 'There is no team with such id!' });
+    }
     const serviceResponse = await this.matchService.createMatch(req.body);
     res.status(201).json(serviceResponse.data);
   }

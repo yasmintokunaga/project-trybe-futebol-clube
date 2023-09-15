@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
 import UserService from '../services/UserService';
+import TeamService from '../services/TeamService';
 
 const secret = process.env.JWT_SECRET || 'jwt_secret';
 
@@ -11,6 +12,8 @@ type JwtPayload = {
 class Validations {
   constructor(
     private userService = new UserService(),
+    private teamService = new TeamService(),
+
   ) { }
 
   static validateFields(req: Request, res: Response, next: NextFunction): Response | void {
