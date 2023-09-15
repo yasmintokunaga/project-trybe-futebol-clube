@@ -1,4 +1,5 @@
 import { ServiceResponse } from '../../Interfaces/ServiceResponse';
+import { NewEntity } from '../../Interfaces';
 import { IMatchModel } from '../../Interfaces/IMatchModel';
 import MatchModel from '../models/MatchModel';
 import IMatch from '../../Interfaces/IMatch';
@@ -32,5 +33,14 @@ export default class MatchService {
 
   public async updateMatchFields(id: IMatch['id'], updateFields: Partial<IMatch>): Promise<void> {
     await this.matchModel.updateMatchFields(id, updateFields);
+  }
+
+  public async createMatch(match: NewEntity<IMatch>): Promise<ServiceResponse<IMatch>> {
+    try {
+      const newMatch = await this.matchModel.createMatch(match);
+      return { status: 'SUCCESSFUL', data: newMatch };
+    } catch (error) {
+      return { status: 'UNAUTHORIZED', data: { message: 'Failed to create match' } };
+    }
   }
 }

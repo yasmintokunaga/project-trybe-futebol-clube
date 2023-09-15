@@ -1,3 +1,4 @@
+import { NewEntity } from '../../Interfaces';
 import { IMatchModel } from '../../Interfaces/IMatchModel';
 import SequelizeMatch from './SequelizeMatch';
 import IMatch from '../../Interfaces/IMatch';
@@ -38,5 +39,26 @@ export default class MatchModel implements IMatchModel {
       throw new Error('Match not found');
     }
     await match.update(updateFields);
+  }
+
+  async createMatch(data: NewEntity<IMatch>): Promise<IMatch> {
+    const dbData = await this.model.create({ ...data, inProgress: true });
+
+    const {
+      id,
+      homeTeamId,
+      homeTeamGoals,
+      awayTeamId,
+      awayTeamGoals,
+      inProgress,
+    }: IMatch = dbData;
+    return {
+      id,
+      homeTeamId,
+      homeTeamGoals,
+      awayTeamId,
+      awayTeamGoals,
+      inProgress,
+    };
   }
 }

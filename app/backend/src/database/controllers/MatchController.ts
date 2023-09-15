@@ -45,4 +45,15 @@ export default class MatchController {
     await this.matchService.updateMatchFields(parseInt(id, 10), updateFields);
     return res.status(200).json({ message: 'Updated' });
   }
+
+  public async createMatch(req: Request, res: Response) {
+    const authorizationHeader = req.header('authorization');
+    const responseValidation = await this.validations.validateToken(authorizationHeader);
+    if (responseValidation.status !== 'SUCCESSFUL') {
+      return res.status(mapStatusHTTP(responseValidation.status)).json(responseValidation.data);
+    }
+
+    const serviceResponse = await this.matchService.createMatch(req.body);
+    res.status(201).json(serviceResponse.data);
+  }
 }
