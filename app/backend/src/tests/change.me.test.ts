@@ -7,14 +7,14 @@ import * as jwt from 'jsonwebtoken';
 import chaiHttp = require('chai-http');
 
 import { app } from '../app';
-import Example from '../database/models/ExampleModel';
 
 import { Response } from 'superagent';
 import SequelizeTeam from '../database/models/SequelizeTeam';
 import { team, teams } from './Team.mocks';
 import SequelizeUser from '../database/models/SequelizeUser';
-import { user, userLogin, validToken } from './User.mocks';
-import ValidationFieldsLogin from '../database/middlewares/ValidationFieldsLogin';
+import { user, userLogin } from './User.mocks';
+import SequelizeMatch from '../database/models/SequelizeMatch';
+import { matches, newMatch } from './Match.mocks';
 
 chai.use(chaiHttp);
 
@@ -122,6 +122,143 @@ describe('User and Login Test', function() {
     
     expect(status).to.equal(401);
     expect(body).to.be.deep.equal({ message: 'Invalid email or password' });
+  });
+
+  afterEach(sinon.restore);
+});
+
+describe('Match Test', function() {
+  it('should get all matches', async function() {
+    sinon.stub(SequelizeMatch, 'findAll').resolves(matches as any);
+
+    const { status, body } = await chai.request(app).get('/matches');
+    
+    expect(status).to.equal(200);
+    expect(body).to.be.deep.equal(matches);
+
+  });
+
+  it('should filter matches inProgress = true', async function() {
+    sinon.stub(SequelizeMatch, 'findAll').resolves(matches as any);
+
+    const { status, body } = await chai.request(app).get('/matches?inProgress=true');
+
+    const matchesInProgressTrue = matches.filter((matches) => matches.in_progress);
+    
+    expect(status).to.equal(200);
+    expect(body).to.be.deep.equal(matchesInProgressTrue);
+  });
+
+  it('should filter matches inProgress = false', async function() {
+    sinon.stub(SequelizeMatch, 'findAll').resolves(matches as any);
+
+    const { status, body } = await chai.request(app).get('/matches?inProgress=false');
+
+    const matchesInProgressFalse = matches.filter((matches) => matches.in_progress === 1);
+    
+    expect(status).to.equal(200);
+    expect(body).to.be.deep.equal(matchesInProgressFalse);
+  });
+
+  it('should finish a match', async function() {
+    sinon.stub(SequelizeUser, 'findOne').resolves(user as any);
+    sinon.stub(bcrypt, 'compareSync').resolves(true);
+    const match = matches.find((match) => match.id === 1);
+    sinon.stub(SequelizeMatch, 'findByPk').resolves(match as any);
+    sinon.stub(SequelizeMatch, 'update').resolves([1]);
+
+    const responseLogin = await chai.request(app).post('/login').send(userLogin);
+    const { status, body } = await chai.request(app).patch('/matches/1/finish')
+      .set('authorization', `Bearer ${responseLogin.body.token}`);
+    
+    expect(status).to.equal(200);
+    expect(body).to.be.deep.equal({ message: 'Finished' });
+  });
+
+  it('should update match', async function() {
+    sinon.stub(SequelizeUser, 'findOne').resolves(user as any);
+    sinon.stub(bcrypt, 'compareSync').resolves(true);
+  
+    const match = matches.find((match) => match.id === 1);
+    sinon.stub(SequelizeMatch, 'findByPk').resolves(match as any);
+    sinon.stub(SequelizeMatch, 'update').resolves([1]);
+
+    const responseLogin = await chai.request(app).post('/login').send(userLogin);
+    const { status, body } = await chai.request(app).patch('/matches/1')
+      .set('authorization', `Bearer ${responseLogin.body.token}`);
+    
+    expect(status).to.equal(200);
+    expect(body).to.be.deep.equal({ message: 'Updated' });
+  });
+
+  it('should create a new match', async function() {
+    sinon.stub(SequelizeUser, 'findOne').resolves(user as any);
+    sinon.stub(bcrypt, 'compareSync').resolves(true);
+  
+    sinon.stub(SequelizeTeam, 'findByPk')
+      .onFirstCall().resolves({ id: 12, teamName: 'firstTeam' } as any)
+      .onSecondCall().resolves({ id: 8, teamName: 'secondTeam' } as any);
+
+    sinon.stub(SequelizeMatch, 'create').resolves(newMatch as any);
+
+    const sendMatch = {
+      homeTeamId: 12,
+      homeTeamGoals: 4,
+      awayTeamId: 8,
+      awayTeamGoals: 1,
+    };
+
+    const responseLogin = await chai.request(app).post('/login').send(userLogin);
+    const { status, body } = await chai.request(app).post('/matches')
+      .set('authorization', `Bearer ${responseLogin.body.token}`)
+      .send(sendMatch);
+    
+    expect(status).to.equal(201);
+    expect(body).to.be.deep.equal(newMatch);
+  });
+
+  it('should not create a new match if homeTeam is equal awayTeam', async function() {
+    sinon.stub(SequelizeUser, 'findOne').resolves(user as any);
+    sinon.stub(bcrypt, 'compareSync').resolves(true);
+
+    const sendMatch = {
+      homeTeamId: 12,
+      homeTeamGoals: 4,
+      awayTeamId: 12,
+      awayTeamGoals: 1,
+    };
+
+    const responseLogin = await chai.request(app).post('/login').send(userLogin);
+    const { status, body } = await chai.request(app).post('/matches')
+      .set('authorization', `Bearer ${responseLogin.body.token}`)
+      .send(sendMatch);
+    
+    expect(status).to.equal(422);
+    expect(body).to.be.deep.equal({ message: 'It is not possible to create a match with two equal teams' });
+  });
+
+  it('should not create a new match if some team does not exist', async function() {
+    sinon.stub(SequelizeUser, 'findOne').resolves(user as any);
+    sinon.stub(bcrypt, 'compareSync').resolves(true);
+  
+    sinon.stub(SequelizeTeam, 'findByPk')
+      .onFirstCall().resolves(null)
+      .onSecondCall().resolves({ id: 8, teamName: 'secondTeam' } as any);
+
+    const sendMatch = {
+      homeTeamId: 12,
+      homeTeamGoals: 4,
+      awayTeamId: 8,
+      awayTeamGoals: 1,
+    };
+
+    const responseLogin = await chai.request(app).post('/login').send(userLogin);
+    const { status, body } = await chai.request(app).post('/matches')
+      .set('authorization', `Bearer ${responseLogin.body.token}`)
+      .send(sendMatch);
+    
+    expect(status).to.equal(404);
+    expect(body).to.be.deep.equal({ message: 'There is no team with such id!' });
   });
 
   afterEach(sinon.restore);

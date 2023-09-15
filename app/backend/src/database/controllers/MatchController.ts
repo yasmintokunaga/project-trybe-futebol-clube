@@ -55,6 +55,7 @@ export default class MatchController {
       return res.status(mapStatusHTTP(responseValidation.status)).json(responseValidation.data);
     }
     const { homeTeamId, awayTeamId } = req.body;
+
     if (homeTeamId === awayTeamId) {
       return res.status(422)
         .json({ message: 'It is not possible to create a match with two equal teams' });
@@ -68,6 +69,7 @@ export default class MatchController {
         .json({ message: 'There is no team with such id!' });
     }
     const serviceResponse = await this.matchService.createMatch(req.body);
+
     res.status(201).json(serviceResponse.data);
   }
 }

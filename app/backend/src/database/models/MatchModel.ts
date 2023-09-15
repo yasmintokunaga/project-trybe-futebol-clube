@@ -30,7 +30,7 @@ export default class MatchModel implements IMatchModel {
     if (!match) {
       throw new Error('Match not found');
     }
-    await match.update({ inProgress: false });
+    await this.model.update({ inProgress: false }, { where: { id } });
   }
 
   async updateMatchFields(id: IMatch['id'], updateFields: Partial<IMatch>): Promise<void> {
@@ -38,7 +38,7 @@ export default class MatchModel implements IMatchModel {
     if (!match) {
       throw new Error('Match not found');
     }
-    await match.update(updateFields);
+    await this.model.update(updateFields, { where: { id } });
   }
 
   async createMatch(data: NewEntity<IMatch>): Promise<IMatch> {
