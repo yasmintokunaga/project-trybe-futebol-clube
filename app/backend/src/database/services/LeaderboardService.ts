@@ -36,36 +36,27 @@ export default class LeaderboardService {
 
   updateGoals = (match: IMatch, teamScores: ITeamScores): ITeamScores => {
     const updatedTeamScores = { ...teamScores };
-    const { homeTeamId, awayTeamId, homeTeamGoals, awayTeamGoals } = match;
+    const { homeTeamId, homeTeamGoals, awayTeamGoals } = match;
 
     updatedTeamScores[homeTeamId].goalsFavor += homeTeamGoals;
     updatedTeamScores[homeTeamId].goalsOwn += awayTeamGoals;
     updatedTeamScores[homeTeamId].totalGames += 1;
-
-    updatedTeamScores[awayTeamId].goalsFavor += awayTeamGoals;
-    updatedTeamScores[awayTeamId].goalsOwn += homeTeamGoals;
-    updatedTeamScores[awayTeamId].totalGames += 1;
 
     return updatedTeamScores;
   };
 
   updateVictoriesAndPoints = (match: IMatch, teamScores: ITeamScores): ITeamScores => {
     const updatedTeamScores = { ...teamScores };
-    const { homeTeamId, awayTeamId, homeTeamGoals, awayTeamGoals } = match;
+    const { homeTeamId, homeTeamGoals, awayTeamGoals } = match;
 
     if (homeTeamGoals > awayTeamGoals) {
       updatedTeamScores[homeTeamId].totalVictories += 1;
       updatedTeamScores[homeTeamId].totalPoints += 3;
-      updatedTeamScores[awayTeamId].totalLosses += 1;
     } else if (awayTeamGoals > homeTeamGoals) {
-      updatedTeamScores[awayTeamId].totalVictories += 1;
-      updatedTeamScores[awayTeamId].totalPoints += 3;
       updatedTeamScores[homeTeamId].totalLosses += 1;
     } else {
       updatedTeamScores[homeTeamId].totalDraws += 1;
       updatedTeamScores[homeTeamId].totalPoints += 1;
-      updatedTeamScores[awayTeamId].totalDraws += 1;
-      updatedTeamScores[awayTeamId].totalPoints += 1;
     }
 
     return updatedTeamScores;
@@ -75,7 +66,7 @@ export default class LeaderboardService {
     const leaderboard: ITeamScoresFinal[] = Object.keys(teamScores).map((teamId) => {
       const team = teamScores[teamId];
       team.goalsBalance = team.goalsFavor - team.goalsOwn;
-      team.efficiency = (team.totalPoints / (team.totalGames * 3)) * 100;
+      team.efficiency = parseFloat(((team.totalPoints / (team.totalGames * 3)) * 100).toFixed(2));
       return { id: parseInt(teamId, 10), ...team };
     });
 
@@ -86,6 +77,18 @@ export default class LeaderboardService {
     const teamScores: ITeamScores = await this.initializateLeaderboards();
     const matches = (await this.matchModel.findAll()).filter((match) => !match.inProgress);
 
+    const updatedTeamScores = this.calculateUpdatedTeamScores(matches, teamScores);
+    const leaderboard = this.calculateBalanceAndEfficiency(updatedTeamScores);
+
+    leaderboard.sort(this.compareTeams);
+
+    return { status: 'SUCCESSFUL', data: leaderboard };
+  }
+
+  private calculateUpdatedTeamScores(
+    matches: IMatch[],
+    teamScores: ITeamScores,
+  ): ITeamScores {
     let updatedTeamScores = { ...teamScores };
 
     matches.forEach((match) => {
@@ -93,10 +96,19 @@ export default class LeaderboardService {
       updatedTeamScores = this.updateVictoriesAndPoints(match, updatedTeamScores);
     });
 
-    const teamScoresUpdateBalanceAndEfficiency = this.calculateBalanceAndEfficiency(
-      updatedTeamScores,
-    );
-
-    return { status: 'SUCCESSFUL', data: teamScoresUpdateBalanceAndEfficiency };
+    return updatedTeamScores;
   }
+
+  compareTeams = (teamA: ITeamScoresFinal, teamB: ITeamScoresFinal) => {
+    if (teamA.totalPoints !== teamB.totalPoints) {
+      return teamB.totalPoints - teamA.totalPoints;
+    }
+    if (teamA.totalVictories !== teamB.totalVictories) {
+      return teamB.totalVictories - teamA.totalVictories;
+    }
+    if (teamA.goalsBalance !== teamB.goalsBalance) {
+      return teamB.goalsBalance - teamA.goalsBalance;
+    }
+    return teamB.goalsFavor - teamA.goalsFavor;
+  };
 }
