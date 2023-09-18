@@ -7,8 +7,13 @@ export default class LeaderboardController {
     private leaderboardService = new LeaderboardService(),
   ) { }
 
-  public async getAllLeaderboards(req: Request, res: Response) {
-    const serviceResponse = await this.leaderboardService.getAllLeaderboards();
+  public async getAllLeaderboardsHomeTeam(req: Request, res: Response) {
+    const serviceResponse = await this.leaderboardService.getAllLeaderboards('homeTeam');
+    res.status(mapStatusHTTP(serviceResponse.status)).json(serviceResponse.data);
+  }
+
+  public async getAllLeaderboardsAwayTeam(req: Request, res: Response) {
+    const serviceResponse = await this.leaderboardService.getAllLeaderboards('awayTeam');
     res.status(mapStatusHTTP(serviceResponse.status)).json(serviceResponse.data);
   }
 }

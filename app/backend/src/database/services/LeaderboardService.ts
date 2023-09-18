@@ -34,29 +34,39 @@ export default class LeaderboardService {
     return teamScores;
   }
 
-  updateGoals = (match: IMatch, teamScores: ITeamScores): ITeamScores => {
+  updateGoals = (match: IMatch, teamScores: ITeamScores, teamType: 'homeTeam' | 'awayTeam'):
+  ITeamScores => {
     const updatedTeamScores = { ...teamScores };
-    const { homeTeamId, homeTeamGoals, awayTeamGoals } = match;
+    const { homeTeamId, awayTeamId, homeTeamGoals, awayTeamGoals } = match;
+    const teamIdToUpdate = teamType === 'homeTeam' ? homeTeamId : awayTeamId;
 
-    updatedTeamScores[homeTeamId].goalsFavor += homeTeamGoals;
-    updatedTeamScores[homeTeamId].goalsOwn += awayTeamGoals;
-    updatedTeamScores[homeTeamId].totalGames += 1;
+    updatedTeamScores[teamIdToUpdate].goalsFavor += teamType === 'homeTeam'
+      ? homeTeamGoals : awayTeamGoals;
+    updatedTeamScores[teamIdToUpdate].goalsOwn += teamType === 'homeTeam'
+      ? awayTeamGoals : homeTeamGoals;
+    updatedTeamScores[teamIdToUpdate].totalGames += 1;
 
     return updatedTeamScores;
   };
 
-  updateVictoriesAndPoints = (match: IMatch, teamScores: ITeamScores): ITeamScores => {
+  updateVictoriesAndPoints =
+  (match: IMatch, teamScores: ITeamScores, teamType: 'homeTeam' | 'awayTeam'): ITeamScores => {
     const updatedTeamScores = { ...teamScores };
-    const { homeTeamId, homeTeamGoals, awayTeamGoals } = match;
+    const { homeTeamId, awayTeamId, homeTeamGoals, awayTeamGoals } = match;
+    const teamIdToUpdate = teamType === 'homeTeam' ? homeTeamId : awayTeamId;
 
-    if (homeTeamGoals > awayTeamGoals) {
-      updatedTeamScores[homeTeamId].totalVictories += 1;
-      updatedTeamScores[homeTeamId].totalPoints += 3;
-    } else if (awayTeamGoals > homeTeamGoals) {
-      updatedTeamScores[homeTeamId].totalLosses += 1;
+    if ((teamType === 'homeTeam' && homeTeamGoals > awayTeamGoals)
+    || (teamType === 'awayTeam' && awayTeamGoals > homeTeamGoals)
+    ) {
+      updatedTeamScores[teamIdToUpdate].totalVictories += 1;
+      updatedTeamScores[teamIdToUpdate].totalPoints += 3;
+    } else if ((teamType === 'homeTeam' && awayTeamGoals > homeTeamGoals)
+    || (teamType === 'awayTeam' && homeTeamGoals > awayTeamGoals)
+    ) {
+      updatedTeamScores[teamIdToUpdate].totalLosses += 1;
     } else {
-      updatedTeamScores[homeTeamId].totalDraws += 1;
-      updatedTeamScores[homeTeamId].totalPoints += 1;
+      updatedTeamScores[teamIdToUpdate].totalDraws += 1;
+      updatedTeamScores[teamIdToUpdate].totalPoints += 1;
     }
 
     return updatedTeamScores;
@@ -73,11 +83,12 @@ export default class LeaderboardService {
     return leaderboard;
   };
 
-  public async getAllLeaderboards(): Promise<ServiceResponse<ITeamScoresFinal[]>> {
+  public async getAllLeaderboards(teamType: 'homeTeam' | 'awayTeam'):
+  Promise<ServiceResponse<ITeamScoresFinal[]>> {
     const teamScores: ITeamScores = await this.initializateLeaderboards();
     const matches = (await this.matchModel.findAll()).filter((match) => !match.inProgress);
 
-    const updatedTeamScores = this.calculateUpdatedTeamScores(matches, teamScores);
+    const updatedTeamScores = this.calculateUpdatedTeamScores(matches, teamScores, teamType);
     const leaderboard = this.calculateBalanceAndEfficiency(updatedTeamScores);
 
     leaderboard.sort(this.compareTeams);
@@ -88,12 +99,13 @@ export default class LeaderboardService {
   private calculateUpdatedTeamScores(
     matches: IMatch[],
     teamScores: ITeamScores,
+    teamType: 'homeTeam' | 'awayTeam',
   ): ITeamScores {
     let updatedTeamScores = { ...teamScores };
 
     matches.forEach((match) => {
-      updatedTeamScores = this.updateGoals(match, updatedTeamScores);
-      updatedTeamScores = this.updateVictoriesAndPoints(match, updatedTeamScores);
+      updatedTeamScores = this.updateGoals(match, updatedTeamScores, teamType);
+      updatedTeamScores = this.updateVictoriesAndPoints(match, updatedTeamScores, teamType);
     });
 
     return updatedTeamScores;
